@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ExamRAG — AI Exam Grading</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>">
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <h1>ExamRAG</h1>
+            <p class="subtitle">AI-Powered Exam Grading</p>
+        </div>
+    </header>
+
+    <main>
+        <!-- Upload Section -->
+        <section id="upload-section" class="section active">
+            <div class="glass-card camera-card">
+                <div id="camera-container">
+                    <video id="camera-feed" autoplay playsinline></video>
+                    <canvas id="capture-canvas" style="display:none;"></canvas>
+                    <img id="preview-image" style="display:none;" alt="Captured exam">
+                    <div id="camera-placeholder">
+                        <div class="camera-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                <circle cx="12" cy="13" r="4"/>
+                            </svg>
+                        </div>
+                        <p>Capture or upload an exam paper</p>
+                    </div>
+                </div>
+
+                <div class="camera-controls">
+                    <button id="btn-start-camera" class="btn btn-secondary" onclick="startCamera()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                        </svg>
+                        Open Camera
+                    </button>
+                    <button id="btn-capture" class="btn btn-capture" onclick="captureImage()" style="display:none;">
+                        <div class="capture-ring"></div>
+                    </button>
+                    <label class="btn btn-secondary" id="btn-upload">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        Upload Image
+                        <input type="file" id="file-input" accept="image/*" onchange="handleFileUpload(event)" hidden>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Captured preview & grade controls -->
+            <div id="preview-controls" class="glass-card" style="display:none;">
+                <div class="topic-select">
+                    <label for="topic-dropdown">Course Topic (optional)</label>
+                    <select id="topic-dropdown">
+                        <option value="">All Topics</option>
+                    </select>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="retake()">Retake</button>
+                    <button class="btn btn-primary" onclick="gradeExam()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 11 12 14 22 4"/>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                        </svg>
+                        Grade Exam
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loading Section -->
+        <section id="loading-section" class="section">
+            <div class="glass-card loading-card">
+                <div class="loader">
+                    <div class="loader-ring"></div>
+                </div>
+                <p id="loading-status">Reading exam paper...</p>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section id="results-section" class="section">
+            <div class="results-header glass-card">
+                <div class="score-circle-container">
+                    <svg class="score-circle" viewBox="0 0 120 120">
+                        <circle class="score-bg" cx="60" cy="60" r="54" />
+                        <circle id="score-ring" class="score-fg" cx="60" cy="60" r="54" />
+                    </svg>
+                    <div class="score-text">
+                        <span id="score-percentage">0</span><span class="score-percent">%</span>
+                    </div>
+                </div>
+                <div class="score-details">
+                    <p id="student-name-display" style="display:none;"></p>
+                    <p class="score-label">Overall Score</p>
+                    <p id="score-fraction" class="score-fraction">0 / 0</p>
+                </div>
+            </div>
+
+            <div id="questions-list"></div>
+
+            <button class="btn btn-primary btn-full" onclick="gradeAnother()">Grade Another Exam</button>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

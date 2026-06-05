@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+backend/chroma_store/
+node_modules/
+.firebase/
+.firebaserc
+*.log
+.DS_Store
