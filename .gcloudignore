@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+node_modules/
+.firebase/
+.claude/
+.git/
+frontend/
+lab_project.pdf

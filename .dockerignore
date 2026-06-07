@@ -1,0 +1,11 @@
+frontend/
+.env
+__pycache__/
+*.pyc
+.claude/
+.git/
+lab_project.pdf
+README.md
+.gitignore
+node_modules/
+.firebase/

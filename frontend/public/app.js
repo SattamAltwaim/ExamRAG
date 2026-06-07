@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8000";
+const API_BASE = "https://examrag-356537744326.us-central1.run.app";
 
 let cameraStream = null;
 let capturedImageData = null;
@@ -52,26 +52,41 @@ function stopCamera() {
     video.style.display = "none";
 }
 
+function resizeImage(source, maxWidth, callback) {
+    const canvas = document.getElementById("capture-canvas");
+    const ctx = canvas.getContext("2d");
+    let w = source.videoWidth || source.naturalWidth || source.width;
+    let h = source.videoHeight || source.naturalHeight || source.height;
+    if (w > maxWidth) {
+        h = Math.round(h * (maxWidth / w));
+        w = maxWidth;
+    }
+    canvas.width = w;
+    canvas.height = h;
+    ctx.drawImage(source, 0, 0, w, h);
+    callback(canvas.toDataURL("image/jpeg", 0.8));
+}
+
 function captureImage() {
     const video = document.getElementById("camera-feed");
-    const canvas = document.getElementById("capture-canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext("2d").drawImage(video, 0, 0);
-    capturedImageData = canvas.toDataURL("image/jpeg", 0.85);
-    stopCamera();
-    showPreview(capturedImageData);
+    resizeImage(video, 1600, (dataUrl) => {
+        capturedImageData = dataUrl;
+        stopCamera();
+        showPreview(capturedImageData);
+    });
 }
 
 function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        capturedImageData = e.target.result;
-        showPreview(capturedImageData);
+    const img = new Image();
+    img.onload = () => {
+        resizeImage(img, 1600, (dataUrl) => {
+            capturedImageData = dataUrl;
+            showPreview(capturedImageData);
+        });
     };
-    reader.readAsDataURL(file);
+    img.src = URL.createObjectURL(file);
 }
 
 function showPreview(dataUrl) {
@@ -138,7 +153,8 @@ async function gradeExam() {
     } catch (err) {
         clearInterval(statusInterval);
         showSection("upload");
-        alert(`Grading failed: ${err.message}`);
+        const size = Math.round((capturedImageData?.length || 0) / 1024);
+        alert(`Grading failed: ${err.message}\n\nImage size: ${size} KB\nCheck your network connection and try again.`);
     }
 }
 

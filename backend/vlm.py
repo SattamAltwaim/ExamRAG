@@ -62,7 +62,9 @@ async def _call_openrouter(messages: list[dict], max_tokens: int = 2000) -> dict
                 "temperature": 0.1,
             },
         )
-        response.raise_for_status()
+        if response.status_code != 200:
+            error_body = response.text[:500]
+            raise RuntimeError(f"OpenRouter {response.status_code}: {error_body}")
         data = response.json()
         content = data["choices"][0]["message"]["content"]
 

@@ -1,9 +1,11 @@
 import sys
+import traceback
 from pathlib import Path
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -38,6 +40,16 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    tb = traceback.format_exc()
+    print(f"Unhandled error: {exc}\n{tb}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+    )
+
+
 class GradeRequest(BaseModel):
     image: str
     course_topic: str | None = None
@@ -55,8 +67,12 @@ def courses():
 
 @app.post("/api/grade")
 async def grade(req: GradeRequest):
-    extraction = await vlm.extract_answers(req.image)
-    questions = extraction.get("questions", [])
+    try:
+        extraction = await vlm.extract_answers(req.image)
+    except Exception as e:
+        raise HTTPException(502, f"Failed to read exam image: {e}")
+
+    questions = extraction.get("questions", extraction.get("exam_questions", []))
     if not questions:
         raise HTTPException(400, "Could not extract any questions from the image.")
 
@@ -65,18 +81,28 @@ async def grade(req: GradeRequest):
     total_max = 0
 
     for q in questions:
-        query = f"{q.get('question_text', '')} {q.get('student_answer', '')}"
-        chunks = rag.retrieve_context(query, n_results=5, topic=req.course_topic)
+        q_text = q.get("question_text", q.get("question", ""))
+        s_answer = q.get("student_answer", q.get("answer", "No answer provided"))
+        query = f"{q_text} {s_answer}"
+
+        try:
+            chunks = rag.retrieve_context(query, n_results=5, topic=req.course_topic)
+        except Exception:
+            chunks = []
+
         context = "\n\n---\n\n".join(
             f"[{c['metadata']['topic']} — Slide {c['metadata']['slide_number']}]\n{c['text']}"
             for c in chunks
         )
 
-        result = await vlm.grade_answer(
-            question_text=q.get("question_text", ""),
-            student_answer=q.get("student_answer", "No answer provided"),
-            course_context=context,
-        )
+        try:
+            result = await vlm.grade_answer(
+                question_text=q_text,
+                student_answer=s_answer,
+                course_context=context,
+            )
+        except Exception as e:
+            result = {"score": 0, "max_score": 10, "feedback": f"Grading error: {e}"}
 
         score = result.get("score", 0)
         max_score = result.get("max_score", q.get("max_score", 10))
@@ -85,8 +111,8 @@ async def grade(req: GradeRequest):
 
         graded.append({
             "question_number": q.get("question_number"),
-            "question_text": q.get("question_text"),
-            "student_answer": q.get("student_answer"),
+            "question_text": q_text,
+            "student_answer": s_answer,
             "score": score,
             "max_score": max_score,
             "feedback": result.get("feedback", ""),
